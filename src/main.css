@@ -1,54 +1,32 @@
-import * as React from 'react';
-import { CommandBar, IButtonProps } from '@fluentui/react/lib/CommandBar';
-import { IButtonProps } from '@fluentui/react/lib/Button';
+export class BaselineCommandBar extends React.Component<IBaselineCommandBarProps> {
+    constructor(props: IBaselineCommandBarProps) {
+        super(props);
+    }
 
-interface IIndividualCommandBarButtonAsExampleProps {
-  onDismissCoachmark: () => void;
-  isCoachmarkVisible: boolean;
-}
+    render() {
+        const { displayMode, item } = this.props;
 
-interface IIndividualCommandBarButtonAsExampleState {
-  isCoachmarkVisible: boolean;
-}
+        // Determine if the Freeze command should be disabled
+        const isFreezeDisabled = item.status === 'Frozen' || item.status === 'Complete';
 
-class IndividualCommandBarButtonAsExampleWrapper extends React.Component<IIndividualCommandBarButtonAsExampleProps, IIndividualCommandBarButtonAsExampleState> {
-  constructor(props: IIndividualCommandBarButtonAsExampleProps) {
-    super(props);
+        // Filter and configure items based on the displayMode and item status
+        const items = displayMode === 4 ? [
+            { key: 'save', text: 'Save', iconProps: { iconName: 'Save' }, onClick: () => console.log('Save') },
+            { key: 'cancel', text: 'Cancel', iconProps: { iconName: 'Cancel' }, onClick: () => console.log('Cancel') },
+        ] : [
+            { key: 'newVersion', text: 'New Version', iconProps: { iconName: 'Add' }, onClick: () => console.log('New Version') },
+            { key: 'freeze', text: 'Freeze', iconProps: { iconName: 'Lock' }, onClick: () => console.log('Freeze'), disabled: isFreezeDisabled },
+            { key: 'save', text: 'Save', iconProps: { iconName: 'Save' }, onClick: () => console.log('Save') },
+            { key: 'cancel', text: 'Cancel', iconProps: { iconName: 'Cancel' }, onClick: () => console.log('Cancel') },
+        ];
 
-    this.state = {
-      isCoachmarkVisible: true,
-    };
+        console.log("props", this.props);
 
-    this.onDismissCoachmark = this.onDismissCoachmark.bind(this);
-  }
-
-  onDismissCoachmark() {
-    this.setState({ isCoachmarkVisible: false });
-  }
-
-  render() {
-    const overflowButtonProps: IButtonProps = {
-      ariaLabel: 'More commands',
-    };
-
-    const items = [
-      { key: 'newItem', text: 'New Version', iconProps: { iconName: 'Add' }, onClick: () => console.log('New Version') },
-      { key: 'freeze', text: 'Freeze', iconProps: { iconName: 'Lock' }, onClick: () => console.log('Upload') },
-      { key: 'save', text: 'Save', iconProps: { iconName: 'Save' }, onClick: () => console.log('Upload') },
-      { key: 'cancel', text: 'Cancel', iconProps: { iconName: 'Cancel' }, onClick: () => console.log('Upload') },
-    ];
-
-    return (
-      <CommandBar
-        overflowButtonProps={overflowButtonProps}
-        items={items}
-      />
-    );
-  }
-}
-
-export default IndividualCommandBarButtonAsExampleWrapper;
-.main{
-    color: green;
-    font-size: 45px;
-}
+        return (
+            <CommandBar
+                items={items}
+            />
+        );
+    }
+      }
+             
