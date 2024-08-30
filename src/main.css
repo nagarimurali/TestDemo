@@ -1,32 +1,103 @@
-export class BaselineCommandBar extends React.Component<IBaselineCommandBarProps> {
-    constructor(props: IBaselineCommandBarProps) {
-        super(props);
+export interface IBaselineCommandBarProps {
+  context: any;
+  displayMode: FormDisplayMode;
+  itemID: number;
+  item: any;
+  isFreezeDisabled?: boolean;  // Assuming this is passed as a prop
+}
+
+export interface IBaselineCommandBarState {
+  isDialogVisible: boolean;
+}
+
+export class BaselineCommandBar extends React.Component<IBaselineCommandBarProps, IBaselineCommandBarState> {
+  constructor(props: IBaselineCommandBarProps) {
+    super(props);
+
+    // Initialize state
+    this.state = {
+      isDialogVisible: false,
+    };
+  }
+
+  // Method to open the dialog
+  private openDialog = () => {
+    this.setState({ isDialogVisible: true });
+  };
+
+  // Method to close the dialog
+  private closeDialog = () => {
+    this.setState({ isDialogVisible: false });
+  };
+
+  render() {
+    const { item, isFreezeDisabled } = this.props;
+    const { isDialogVisible } = this.state;
+
+    let items: any[];  // Declare the items array
+
+    if (item && item.baselineStatus === "Ongoing") {
+      items = [
+        {
+          key: "freeze",
+          text: "Freeze",
+          iconProps: { iconName: "Lock" },
+          onClick: this.openDialog,  // Open the dialog on click
+          disabled: isFreezeDisabled,
+        },
+        {
+          key: "save",
+          text: "Save",
+          iconProps: { iconName: "Save" },
+          onClick: () => console.log("Save"),
+        },
+        {
+          key: "cancel",
+          text: "Cancel",
+          iconProps: { iconName: "Cancel" },
+          onClick: () => console.log("Cancel"),
+        },
+      ];
+    } else {
+      items = [
+        {
+          key: "save",
+          text: "Save",
+          iconProps: { iconName: "Save" },
+          onClick: () => console.log("Save"),
+        },
+        {
+          key: "cancel",
+          text: "Cancel",
+          iconProps: { iconName: "Cancel" },
+          onClick: () => console.log("Cancel"),
+        },
+      ];
     }
 
-    render() {
-        const { displayMode, item } = this.props;
+    return (
+      <>
+        <CommandBar items={items} />
 
-        // Determine if the Freeze command should be disabled
-        const isFreezeDisabled = item.status === 'Frozen' || item.status === 'Complete';
-
-        // Filter and configure items based on the displayMode and item status
-        const items = displayMode === 4 ? [
-            { key: 'save', text: 'Save', iconProps: { iconName: 'Save' }, onClick: () => console.log('Save') },
-            { key: 'cancel', text: 'Cancel', iconProps: { iconName: 'Cancel' }, onClick: () => console.log('Cancel') },
-        ] : [
-            { key: 'newVersion', text: 'New Version', iconProps: { iconName: 'Add' }, onClick: () => console.log('New Version') },
-            { key: 'freeze', text: 'Freeze', iconProps: { iconName: 'Lock' }, onClick: () => console.log('Freeze'), disabled: isFreezeDisabled },
-            { key: 'save', text: 'Save', iconProps: { iconName: 'Save' }, onClick: () => console.log('Save') },
-            { key: 'cancel', text: 'Cancel', iconProps: { iconName: 'Cancel' }, onClick: () => console.log('Cancel') },
-        ];
-
-        console.log("props", this.props);
-
-        return (
-            <CommandBar
-                items={items}
-            />
-        );
-    }
-      }
-             
+        <Dialog
+          hidden={!isDialogVisible}
+          onDismiss={this.closeDialog}
+          dialogContentProps={{
+            type: DialogType.normal,
+            title: "Freeze Item",
+            closeButtonAriaLabel: "Close",
+            subText: "Are you sure you want to freeze this item?",
+          }}
+          modalProps={{
+            isBlocking: false,
+          }}
+        >
+          <DialogFooter>
+            <PrimaryButton onClick={this.closeDialog} text="Yes" />
+            <DefaultButton onClick={this.closeDialog} text="No" />
+          </DialogFooter>
+        </Dialog>
+      </>
+    );
+  }
+}
