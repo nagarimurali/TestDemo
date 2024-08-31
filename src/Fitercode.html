@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Select Country Filter</title>
+    <style>
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            text-align: center;
+        }
+        select, button {
+            padding: 10px;
+            margin: 10px;
+        }
+        /* Style adjustments for dropdown and button */
+        #CountryFilter {
+            width: 200px;
+            height: 150px;
+            overflow: auto;
+        }
+    </style>
+    <!-- Include jQuery from a CDN -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Include SPServices for SharePoint if needed (optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/spservices/2014.02.22/jquery.SPServices.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Filter Countries</h1>
+        <select id="CountryFilter" multiple="multiple">
+            <!-- Options will be populated here -->
+        </select>
+        <button onclick="filterTable()">Filter</button>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            fetchCountries();
+        });
+
+        // Function to fetch and populate the multi-select dropdown with country titles
+        function fetchCountries() {
+            var siteUrl = _spPageContextInfo.webAbsoluteUrl;
+            $.ajax({
+                url: siteUrl + "/_api/web/lists/getbytitle('Countries')/items?$select=Title",
+                type: "GET",
+                headers: { "Accept": "application/json;odata=verbose" },
+                success: function(data) {
+                    var optionsHtml = '<option value="">Select a country</option>';
+                    data.d.results.forEach(function(item) {
+                        optionsHtml += '<option value="' + item.Title + '">' + item.Title + '</option>';
+                    });
+                    $('#CountryFilter').html(optionsHtml);
+                },
+                error: function(error) {
+                    console.error('Error loading country data:', error);
+                }
+            });
+        }
+
+        // Function to filter the SharePoint view based on selected countries
+        function filterTable() {
+            var selectedCountries = $('#CountryFilter').val();  // Get selected values
+            if (!selectedCountries || selectedCountries.length === 0) {
+                alert('Please select at least one country');
+                return;
+            }
+
+            var siteUrl = _spPageContextInfo.webAbsoluteUrl;
+            var filterQuery = selectedCountries.map(function(country) {
+                return "Title eq '" + country + "'";
+            }).join(' or ');
+
+            $.ajax({
+                url: siteUrl + "/_api/web/lists/getbytitle('Countries')/items?$filter=" + filterQuery,
+                type: "GET",
+                headers: { "Accept": "application/json;odata=verbose" },
+                success: function(data) {
+                    var listView = $("table.ms-listviewtable");
+                    listView.find("tr.ms-alternating-bg, tr.ms-bgcolor2").hide(); // Hide all rows initially
+
+                    data.d.results.forEach(function(item) {
+                        listView.find("tr").each(function() {
+                            var rowText = $(this).find("td.ms-vb").text().trim(); // Adjust if column location is different
+                            if (item.Title === rowText) {
+                                $(this).show();
+                            }
+                        });
+                    });
+                },
+                error: function(error) {
+                    console.error('Error filtering data:', error);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
