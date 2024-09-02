@@ -1,0 +1,117 @@
+private openFreezeDialog = async () => {
+    // Define the queries for Baseline and Technical Document
+    let baselineQuery = { ContentType: "Baseline" };
+    let technicalQuery = { ContentType: "Technical Document" };
+
+    // Log the linkedSearchItems for debugging
+    console.log("linkedSearchItems", this.props.linkedSearchItems);
+
+    // Assuming this is the DocumentStatus you're checking against
+    let testDocumentStatus = "CNK7JPPEYVHU-76372886-63";
+
+    // Process Baseline Data
+    if (this.props.linkedSearchItems.some(item => item.ContentType === "Baseline")) {
+        const baselineData = await BaselineService.getSearchResults(baselineQuery);
+
+        // Log and store the BaselineStatus values
+        const baselineStatus = baselineData.map(item => item.BaselineStatus);
+        console.log("baselineStatus", baselineStatus);
+        console.log("baselineData", baselineData);
+    }
+
+    // Process Technical Document Data
+    if (this.props.linkedSearchItems.some(item => item.ContentType === "Technical Document")) {
+        const technicalData = await BaselineService.getSearchResults(technicalQuery);
+
+        // Filter based on DocumentStatus and log the result
+        const filteredData = technicalData.filter(item => item.DocumentId === testDocumentStatus);
+        console.log("filteredData", filteredData);
+        console.log("technicalData", technicalData);
+    }
+
+    // Set state or perform other actions if necessary
+    this.setState({ isFreezeDialogVisible: true });
+};
+
+// Outputs for reference
+
+// linkedSearchItems
+const linkedSearchItems = [
+    {
+        ChildBaselineId: "7",
+        ContentType: "Baseline",
+        DocumentId: null,
+        SiteUrl: "https://alstomgrouppp.sharepoint.com/sites/DMS-DEV1",
+        index: 1,
+        isSelected: false
+    },
+    {
+        ChildBaselineId: null,
+        ContentType: "Technical Document",
+        DocumentId: null,
+        SiteUrl: "https://alstomgrouppp.sharepoint.com/sites/DMS-DEV1",
+        Title: "Test1308",
+        index: 3,
+        isSelected: false
+    }
+];
+
+// baselineData
+const baselineData = [
+    {
+        BaselineStatus: "Frozen",
+        CRID: "1234",
+        ChangeRequest: null,
+        Code: "2232",
+        ContentType: "Baseline",
+        DocId: "87253990468686060506",
+        DocumentId: null,
+        DocumentStatus: null,
+        ItemId: "9",
+        Label: "nbdjdw"
+    },
+    {
+        BaselineStatus: "Ongoing",
+        CRID: "1234",
+        ChangeRequest: null,
+        Code: "2232",
+        ContentType: "Baseline",
+        DocId: "87253990468686060506",
+        DocumentId: null,
+        DocumentStatus: null,
+        ItemId: "10",
+        Label: "nbdjdw"
+    }
+];
+
+// technicalData
+const technicalData = [
+    {
+        BaselineStatus: null,
+        CRID: null,
+        ChangeRequest: null,
+        Code: null,
+        ContentType: "Technical Document",
+        DocId: "3608676825523532916",
+        DocumentId: "CNK7JPPEYVHU-76372886-76",
+        DocumentStatus: "Under Review",
+        ItemId: "76",
+        Label: null,
+        ProjectReference: "AAA",
+        ProjectRevision: "BCR"
+    },
+    {
+        BaselineStatus: null,
+        CRID: null,
+        ChangeRequest: null,
+        Code: null,
+        ContentType: "Technical Document",
+        DocId: "3608676825523532916",
+        DocumentId: "CNK7JPPEYVHU-76372886-86",
+        DocumentStatus: "Draft",
+        ItemId: "86",
+        Label: null,
+        ProjectReference: "AAA",
+        ProjectRevision: "BCR"
+    }
+];
