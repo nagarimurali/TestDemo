@@ -1,0 +1,62 @@
+<!-- Dropdown 1 -->
+<div class="dropdown col-md-2">
+    <button class="btn btn-default dropdown-toggle w-100 p-0 mt-0 btn-xs btnCustHeight" type="button" data-toggle="dropdown">
+        <span class="dropdown-text">Select Employee Type</span>
+        <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu" id="dropdown-menu1">
+        <li class="m-1">
+            <label>
+                <input type="checkbox" class="selectall mt-0 ml-2" id="selectall1" />
+                <span class="select-text" id="select-text1">Select</span> All
+            </label>
+        </li>
+        <li class="divider"></li>
+        <li><label><input type="checkbox" name="options1[]" value="Option 1"> Option 1</label></li>
+        <li><label><input type="checkbox" name="options1[]" value="Option 2"> Option 2</label></li>
+        <!-- Add more options as needed -->
+    </ul>
+</div>
+
+<!-- Repeat similar structure for Dropdown 2 and Dropdown 3 -->
+function initializeDropdown(dropdownMenuId, selectAllId, checkboxName, selectTextId) {
+    $(`#${selectAllId}`).click(function () {
+        if ($(this).is(':checked')) {
+            $(`#${dropdownMenuId} input[name="${checkboxName}"]`).prop('checked', true);
+            const total = $(`#${dropdownMenuId} input[name="${checkboxName}"]`).length;
+            $(`#${selectTextId}`).html(`${total} Selected`);
+        } else {
+            $(`#${dropdownMenuId} input[name="${checkboxName}"]`).prop('checked', false);
+            $(`#${selectTextId}`).html('Select');
+        }
+        updateSelectedValues(dropdownMenuId, checkboxName);
+    });
+
+    $(`#${dropdownMenuId} input[name="${checkboxName}"]`).change(function () {
+        const checkedCount = $(`#${dropdownMenuId} input[name="${checkboxName}"]:checked`).length;
+        const totalCount = $(`#${dropdownMenuId} input[name="${checkboxName}"]`).length;
+        if (checkedCount === totalCount) {
+            $(`#${selectAllId}`).prop('checked', true);
+            $(`#${selectTextId}`).html(`${checkedCount} Selected`);
+        } else {
+            $(`#${selectAllId}`).prop('checked', false);
+            $(`#${selectTextId}`).html(`${checkedCount ? `${checkedCount} Selected` : 'Select'}`);
+        }
+        updateSelectedValues(dropdownMenuId, checkboxName);
+    });
+
+    function updateSelectedValues(dropdownMenuId, checkboxName) {
+        const selectedValues = [];
+        $(`#${dropdownMenuId} input[name="${checkboxName}"]:checked`).each(function () {
+            selectedValues.push($(this).val().trim());
+        });
+        console.log(`Selected values for ${dropdownMenuId}: `, selectedValues);
+    }
+}
+
+// Initialize dropdowns
+$(document).ready(function () {
+    initializeDropdown('dropdown-menu1', 'selectall1', 'options1[]', 'select-text1');
+    initializeDropdown('dropdown-menu2', 'selectall2', 'options2[]', 'select-text2');
+    initializeDropdown('dropdown-menu3', 'selectall3', 'options3[]', 'select-text3');
+});
