@@ -1,0 +1,31 @@
+private openFreezeDialog = async () => {
+    try {
+        const technicalQuery = { ContentType: 'Technical Document' };
+        console.log('linkedSearchItems', this.props.linkedSearchItems);
+
+        // Filter items that are "Technical Document" and have a non-null "DocumentId"
+        const technicalDocumentItems = this.props.linkedSearchItems.filter(item =>
+            item.ContentType === 'Technical Document' && item.DocumentId
+        );
+
+        if (technicalDocumentItems.length > 0) {
+            const technicalData = await BaselineService.getSearchResults(technicalQuery);
+
+            // Filter technicalData based on DocumentId from valid linkedSearchItems
+            const filteredData = technicalData.filter(techItem =>
+                technicalDocumentItems.some(linkedItem => linkedItem.DocumentId === techItem.DocumentId)
+            );
+
+            console.log('filteredData', filteredData);
+            console.log('technicalData', technicalData);
+
+            if (filteredData.every(item => item.DocumentStatus === 'Draft')) {
+                this.setState({ isFreezeDialogVisible: true, filteredData });
+            } else {
+                console.log('Non-draft documents found:', filteredData.filter(item => item.DocumentStatus !== 'Draft'));
+            }
+        }
+    } catch (error) {
+        console.error('Error in openFreezeDialog:', error);
+    }
+}
