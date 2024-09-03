@@ -36,3 +36,152 @@ type TechnicalDataType = {
     ProjectReference: string;
     ProjectRevision: string;
 };
+import React from "react";
+
+const InputData: InputDataType[] = [
+    {
+        ChildBaselineId: "9",
+        ContentType: "Baseline",
+        DocumentId: null,
+        SiteUrl: "https://alstomgrouppp.sharepoint.com/sites/DMS-DEV1",
+        index: 1,
+        isSelected: false
+    },
+    {
+        ChildBaselineId: null,
+        ContentType: "Technical Document",
+        DocumentId: "CNK7JPPEYVHU-76372886-86",
+        SiteUrl: "https://alstomgrouppp.sharepoint.com/sites/DMS-DEV1",
+        index: 2,
+        isSelected: false
+    }
+];
+
+const baselineData: BaselineDataType[] = [
+    {
+        BaselineStatus: "Frozen",
+        CRID: "1234",
+        ChangeRequest: null,
+        Code: "2232",
+        ContentType: "Baseline",
+        DocId: "87253990468686060506",
+        DocumentId: null,
+        DocumentStatus: null,
+        ItemId: "9",
+        SiteUrl: "https://alstomgrouppp.sharepoint.com/sites/DMS-DEV1",
+        Label: "nbdjdw"
+    },
+    {
+        BaselineStatus: "Ongoing",
+        CRID: "1234",
+        ChangeRequest: null,
+        Code: "2232",
+        ContentType: "Baseline",
+        DocId: "87253990468686060506",
+        DocumentId: null,
+        DocumentStatus: null,
+        ItemId: "10",
+        SiteUrl: "https://alstomgrouppp.sharepoint.com/sites/DMS-DEV1",
+        Label: "nbdjdw"
+    }
+];
+
+const technicalData: TechnicalDataType[] = [
+    {
+        BaselineStatus: null,
+        CRID: null,
+        ChangeRequest: null,
+        Code: null,
+        ContentType: "Technical Document",
+        DocId: "3608676825523532916",
+        DocumentId: "CNK7JPPEYVHU-76372886-76",
+        DocumentStatus: "Under Review",
+        ItemId: "76",
+        Label: null,
+        ProjectReference: "AAA",
+        ProjectRevision: "BCR"
+    },
+    {
+        BaselineStatus: null,
+        CRID: null,
+        ChangeRequest: null,
+        Code: null,
+        ContentType: "Technical Document",
+        DocId: "3608676825523532916",
+        DocumentId: "CNK7JPPEYVHU-76372886-86",
+        DocumentStatus: "Applicable",
+        ItemId: "86",
+        Label: null,
+        ProjectReference: "AAA",
+        ProjectRevision: "BCR"
+    }
+];
+
+const DataChecker: React.FC = () => {
+
+    const checkBaseline = async (item: InputDataType): Promise<boolean> => {
+        const matchingBaseline = baselineData.find(
+            baseline => baseline.ItemId === item.ChildBaselineId && baseline.SiteUrl === item.SiteUrl
+        );
+        if (matchingBaseline) {
+            if (matchingBaseline.BaselineStatus === "Frozen") {
+                console.log("Baseline data check passed: Frozen status found");
+                return true;
+            } else {
+                alert("Error: Baseline status is not Frozen.");
+                return false;
+            }
+        } else {
+            alert("Error: Matching Baseline data not found.");
+            return false;
+        }
+    };
+
+    const checkTechnicalDocument = async (item: InputDataType): Promise<boolean> => {
+        const matchingTechnical = technicalData.find(
+            technical => technical.DocumentId === item.DocumentId
+        );
+        if (matchingTechnical) {
+            if (matchingTechnical.DocumentStatus === "Applicable") {
+                console.log("Technical Document check passed: Applicable status found");
+                return true;
+            } else {
+                alert("Error: Technical Document status is not Applicable.");
+                return false;
+            }
+        } else {
+            alert("Error: Matching Technical Document data not found.");
+            return false;
+        }
+    };
+
+    const processInputData = async (inputData: InputDataType[]): Promise<void> => {
+        const checks = inputData.map(item => {
+            if (item.ContentType === "Baseline") {
+                return checkBaseline(item);
+            } else if (item.ContentType === "Technical Document") {
+                return checkTechnicalDocument(item);
+            } else {
+                alert("Error: Unsupported ContentType.");
+                return false;
+            }
+        });
+
+        const results = await Promise.all(checks);
+        
+        if (results.every(result => result === true)) {
+            console.log("All checks passed, data success saved.");
+        } else {
+            console.log("One or more checks failed, data not saved.");
+        }
+    };
+
+    return (
+        <div>
+            <button onClick={() => processInputData(InputData)}>Check Data</button>
+        </div>
+    );
+};
+
+export default DataChecker;
+
