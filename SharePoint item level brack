@@ -12,18 +12,18 @@ export default class SharePointService {
 
             // Break role inheritance (remove existing permissions, keep the item unique)
             await item.breakRoleInheritance(false, true);
-
             console.log(`Permissions inheritance broken for item ${itemId}.`);
 
             // Fetch site-level groups
-            const groups = await sp.web.siteGroups();
+            const groups = await sp.web.siteGroups.get();
 
             for (const group of groups) {
                 try {
                     console.log(`Group ${group.Title} retrieved successfully.`);
 
                     // Grant read access to each site-level group
-                    await item.roleAssignments.add(group.Id, sp.web.roleDefinitions.getByName("Read").Id);
+                    const readRoleDefinition = await sp.web.roleDefinitions.getByName("Read").get();
+                    await item.roleAssignments.add(group.Id, readRoleDefinition.Id);
                     console.log(`Read access granted to group ${group.Title} for item ${itemId}.`);
                 } catch (error) {
                     console.error(`Error setting permissions for group ${group.Title}:`, error);
@@ -35,4 +35,3 @@ export default class SharePointService {
         }
     }
 }
-      await sharePointService.setItemPermissionsForSiteGroups(listName, itemId);
