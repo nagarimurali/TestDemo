@@ -1,0 +1,48 @@
+import { sp } from "@pnp/sp";
+import "@pnp/sp/webs";
+import "@pnp/sp/lists";
+import "@pnp/sp/items";
+import "@pnp/sp/security";
+import "@pnp/sp/site-groups";
+
+// Assuming you have a list item ID and list name
+const listName = "YourListName";
+const itemId = 1; // The ID of the list item
+
+// Function to retrieve all SharePoint groups and remove their permissions from a list item
+const removePermissionsFromAllGroups = async () => {
+  try {
+    // Get the list item
+    const item = await sp.web.lists.getByTitle(listName).items.getById(itemId);
+
+    // Break role inheritance and keep current permissions (we'll remove specific groups later)
+    await item.breakRoleInheritance(false);
+
+    // Get all SharePoint groups in the site
+    const allGroups = await sp.web.siteGroups();
+
+    // Loop through each group and remove its permissions from the list item
+    for (const group of allGroups) {
+      try {
+        // Check if the group has "Read" permissions
+        const roleAssignments = await item.roleAssignments.getByPrincipalId(group.Id).roleDefinitionBindings();
+        const hasReadPermission = roleAssignments.some(role => role.Name === "Read");
+
+        if (hasReadPermission) {
+          // Remove the group's permissions if it has "Read"
+          await item.roleAssignments.remove(group.Id);
+          console.log(`Permissions removed for group: ${group.Title}`);
+        }
+      } catch (error) {
+        console.error(`Error removing permissions for group ${group.Title}:`, error);
+      }
+    }
+
+    console.log("Specified group permissions removed from the item.");
+  } catch (error) {
+    console.error("Error breaking inheritance or removing group permissions:", error);
+  }
+};
+
+// Call the function to remove permissions from all groups with read-only access
+removePermissionsFromAllGroups();
