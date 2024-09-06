@@ -1,4 +1,3 @@
-
 import { spfi } from "@pnp/sp";
 import "@pnp/sp/webs";
 import "@pnp/sp/lists";
@@ -37,14 +36,11 @@ export async function setItemPermissionsForSiteGroups(
         // Loop through each group and grant read access, excluding the current user
         for (const group of groups) {
             try {
-                // Skip permission modification if the group includes the current user
-                if (group.Id !== currentUserId) {
-                    console.log(`Group ${group.Title} retrieved successfully.`);
+                console.log(`Processing group: ${group.Title}`);
 
-                    // Grant read access to each site-level group
-                    await item.roleAssignments.add(group.Id, readRoleDefinition.Id);
-                    console.log(`Read access granted to group ${group.Title} for item ${itemId}.`);
-                }
+                // Grant read access to each site-level group
+                await item.roleAssignments.add(group.Id, readRoleDefinition.Id);
+                console.log(`Read access granted to group ${group.Title} for item ${itemId}.`);
             } catch (error) {
                 console.error(`Error setting permissions for group ${group.Title}:`, error);
             }
@@ -59,6 +55,14 @@ export async function setItemPermissionsForSiteGroups(
             await item.roleAssignments.add(ownerId, readRoleDefinition.Id);
             console.log(`Read access granted to item owner for item ${itemId}.`);
         }
+
+        // Check if the current user is not accidentally being granted full control
+        const userRoleAssignments = await item.roleAssignments.get();
+        userRoleAssignments.forEach(roleAssignment => {
+            if (roleAssignment.PrincipalId === currentUserId && roleAssignment.RoleDefinitionBindings.some(rd => rd.BasePermissions.has(PermissionKind.FullControl))) {
+                console.warn(`Full control detected for current user on item ${itemId}. This should be reviewed.`);
+            }
+        });
 
     } catch (error) {
         console.error(`Error setting permissions for item ${itemId}:`, error);
