@@ -56,12 +56,16 @@ export async function setItemPermissionsForSiteGroups(
             console.log(`Read access granted to item owner for item ${itemId}.`);
         }
 
-        // Check if the current user is not accidentally being granted full control
-        const userRoleAssignments = await item.roleAssignments.get();
+        // Fetch role assignments for the item and check if the current user has full control
+        const userRoleAssignments = await item.roleAssignments.expand("RoleDefinitionBindings")();
+
+        // Iterate over role assignments to check if the current user has full control
         userRoleAssignments.forEach(roleAssignment => {
-            if (roleAssignment.PrincipalId === currentUserId && roleAssignment.RoleDefinitionBindings.some(rd => rd.BasePermissions.has(PermissionKind.FullControl))) {
-                console.warn(`Full control detected for current user on item ${itemId}. This should be reviewed.`);
-            }
+            roleAssignment.RoleDefinitionBindings.forEach(roleDefBinding => {
+                if (roleDefBinding.BasePermissions.has(PermissionKind.FullControl)) {
+                    console.warn(`Full control detected for current user on item ${itemId}. This should be reviewed.`);
+                }
+            });
         });
 
     } catch (error) {
