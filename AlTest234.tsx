@@ -113,3 +113,29 @@ const saveToSharePoint = async (value: string) => {
     MultiLineFieldName: value
   });
 };
+additionalFieldOptions[FieldNames.AlstomPartNumbers] = {
+    ...additionalFieldOptions[FieldNames.AlstomPartNumbers],
+    render: (props) => (
+        <AlstomPartNumbersField
+            {...props}
+            ref={props.ref as React.RefObject<AlstomPartNumbersField>}
+        />
+    ),
+  ----------------------------------------------------------------------------
+    preSaveOperationLabel: strings.AlstomPartNumbersPreSaveOperationLabel,
+    preSaveOperation: (value: string, ref: React.RefObject<AlstomPartNumbersField>, values: IListItemFormUpdateValue[]) => {
+        if (ref.current) {
+            const internalValue = ref.current.state.value;
+            if (!internalValue) {
+                throw new Error("AlstomPartNumbersField is not set");
+            }
+            // Assuming you need to concatenate part numbers
+            const partNumberValue = internalValue
+                .split(';') // Assuming each part number is separated by semicolons
+                .map(v => `${values.find(v => v.FieldName === FieldNames.ProjectReference)?.FieldValue}-${values.find(v => v.FieldName === FieldNames.Revision)?.FieldValue}`);
+            
+            // Return the concatenated part numbers
+            return partNumberValue.join('; ');
+        }
+    }
+};
