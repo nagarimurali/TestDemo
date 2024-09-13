@@ -128,4 +128,42 @@ additionalFieldOptions[FieldNames.AlstomPartNumbers] = {
 };
 -----------------------------------------------------------
 
+  additionalFieldOptions[FieldNames.AlstomPartNumbers] = {
+  ...additionalFieldOptions[FieldNames.AlstomPartNumbers],
+  renderer: (props) => (
+    <AlstomPartNumbersField
+      {...{ ...props, ref: props.ref as React.RefObject<AlstomPartNumbersField> }}
+    />
+  ),
+  preSaveOperation: async (_, spfi, ref: React.RefObject<AlstomPartNumbersField>, values: IListItemFormUpdateValue[]) => {
+    // Ensure that the ref is set
+    if (!ref.current) {
+      throw new Error("AlstomPartNumbersField ref is not set");
+    }
+    
+    // Extract the value from the AlstomPartNumbersField component
+    const alstomPartNumbers = ref.current.partNumbersToSingleLine();
+    
+    // If the value is empty, you might want to handle it here
+    if (!alstomPartNumbers) {
+      throw new Error("AlstomPartNumbersField value is not set");
+    }
+    
+    // Find the corresponding list item field value for Alstom Part Numbers
+    const partNumbersFieldValue = values.find((v) => v.FieldName === FieldNames.AlstomPartNumbers);
+    
+    // Assign the concatenated string to the field value
+    if (partNumbersFieldValue) {
+      partNumbersFieldValue.FieldValue = alstomPartNumbers;
+    } else {
+      // Handle the case where the field is not present
+      throw new Error("Alstom Part Numbers field not found in the form values");
+    }
+
+    // Optionally, you can perform any other operations here if needed (e.g., API calls, additional validation, etc.)
+  },
+  preSaveOperationLabel: strings.AlstomPartNumbersPreSaveOperationLabel
+};
+-------------------------------------
+
 export default AlstomPartNumbersField;
