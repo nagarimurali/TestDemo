@@ -9,7 +9,7 @@ interface State {
   partNumbers: PartNumber[];
 }
 
-class AlomPartNumbersForm extends React.Component<{}, State> {
+class AlPartNumbersForm extends React.Component<{}, State> {
   constructor(props: {}) {
     super(props);
     this.state = {
@@ -98,4 +98,4 @@ class AlomPartNumbersForm extends React.Component<{}, State> {
   }
 }
 
-export default AlstomPartNumbersForm;
+export default AlPartNumbersForm;
