@@ -1,0 +1,23 @@
+import { sp } from "@pnp/sp";
+import "@pnp/sp/webs";
+import "@pnp/sp/lists";
+
+sp.setup({
+  sp: {
+    baseUrl: "https://yourtenant.sharepoint.com/sites/yoursite",
+  },
+});
+
+async function registerWebhook() {
+  const listName = "Documents";
+  const webhookUrl = "https://<your-function-app-name>.azurewebsites.net/api/HandleSharePointFileEvent";
+
+  try {
+    const result = await sp.web.lists.getByTitle(listName).subscriptions.add(webhookUrl, new Date(Date.now() + 180 * 24 * 60 * 60 * 1000), "", "Created");
+    console.log("Webhook created successfully", result);
+  } catch (err) {
+    console.error("Error creating webhook", err);
+  }
+}
+
+registerWebhook();
