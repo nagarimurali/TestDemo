@@ -84,6 +84,11 @@ export default class HideMenuOptionsApplicationCustomizer extends BaseApplicatio
     display: none !important;
 }
 
+a[aria-label="Click or enter to return to classic SharePoint"] {
+    display: none !important;
+}
+
+
 button[data-automationid="shareSplit"],
 button[data-automationid="alertMeCommand"],
 button[data-automationid="automateCommand"],
