@@ -1,0 +1,57 @@
+import { Log } from '@microsoft/sp-core-library';
+import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
+import { override } from '@microsoft/decorators';
+
+const LOG_SOURCE: string = 'HideButtonsInRootFolder';
+
+export default class HideButtonsInRootFolder extends BaseApplicationCustomizer<{}> {
+
+  @override
+  public onInit(): Promise<void> {
+    Log.info(LOG_SOURCE, `Initialized HideButtonsInRootFolder`);
+
+    // Function to hide or show elements by selector
+    const toggleElementVisibility = (selector: string, elementName: string, show: boolean) => {
+      const element: any = document.querySelector(selector);
+      if (element) {
+        element.style.display = show ? "inline-block" : "none";
+        console.log(`${elementName} ${show ? 'shown' : 'hidden'}`);
+      } else {
+        console.warn(`${elementName} not found`);
+      }
+    };
+
+    // Function to check if the user is in a child folder based on the URL
+    const isChildFolder = (): boolean => {
+      const currentUrl = window.location.href;
+      
+      // Check if the URL contains 'viewid' or some other identifier for child folders
+      return currentUrl.includes('viewid');  // Adjust this to be more specific if necessary
+    };
+
+    // Function to hide or show "New" and "Upload" buttons
+    const toggleButtonsVisibility = () => {
+      if (isChildFolder()) {
+        toggleElementVisibility('button[aria-label="New"]', "New Button", true);
+        toggleElementVisibility('button[aria-label="Upload"]', "Upload Button", true);
+      } else {
+        toggleElementVisibility('button[aria-label="New"]', "New Button", false);
+        toggleElementVisibility('button[aria-label="Upload"]', "Upload Button", false);
+      }
+    };
+
+    // Initially hide or show buttons based on the folder level
+    toggleButtonsVisibility();
+
+    // Use MutationObserver to recheck whenever the DOM updates (e.g., folder navigation)
+    const observer = new MutationObserver(() => {
+      toggleButtonsVisibility();
+    });
+
+    const config = { childList: true, subtree: true };
+    const targetNode = document.body || document.documentElement;
+    observer.observe(targetNode, config);
+
+    return Promise.resolve();
+  }
+}
