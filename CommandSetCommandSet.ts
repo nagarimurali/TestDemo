@@ -1,4 +1,3 @@
-/* eslint-disable no-case-declarations */
 import { Log } from '@microsoft/sp-core-library';
 import {
   BaseListViewCommandSet,
@@ -15,8 +14,9 @@ import '@pnp/sp/lists';
 import '@pnp/sp/items';
 import * as React from 'react';
 import * as ReactDom from 'react-dom';
-import WorkflowsPanel, { IWorkflowsPanelProps } from './components/WorkflowsPanel/WorkflowsPanel';
 import { assign } from '@fluentui/react';
+import { IItem } from "@pnp/sp/items/types";
+import WorkflowsPanel, { IWorkflowsPanelProps } from '../dmsContexualMenuCommandSet/components/WorkflowsPanel/WorkflowsPanel';
 
 export interface IDmsContexualMenuCommandSetCommandSetProperties {
   requestListId: string;
@@ -24,85 +24,96 @@ export interface IDmsContexualMenuCommandSetCommandSetProperties {
   workflowUrl: string;
 }
 
-const LOG_SOURCE: string = 'DmsContexualMenuCommandSetCommandSet';
+const LOG_SOURCE: string = 'ThreeSixtyDegreeDocViewCommandSet';
 
-export default class DmsContexualMenuCommandSetCommandSet extends BaseListViewCommandSet<IDmsContexualMenuCommandSetCommandSetProperties> {
+export default class ThreeSixtyDegreeDocViewCommandSet extends BaseListViewCommandSet<IDmsContexualMenuCommandSetCommandSetProperties> {
   private _sp: SPFI;
   private _requestService: IRequestService;
   private panelPlaceHolder: HTMLDivElement | null = null;
+  private itemData: any;
 
-  public onInit(): Promise<void> {
+  public async onInit(): Promise<void> {
     Log.info(LOG_SOURCE, 'Initialized DmsContexualMenuCommandSetCommandSet');
-
-    const openWFPanel: Command = this.tryGetCommand('OPEN_WFPANEL');
-    openWFPanel.visible = true;
-
-    this.context.listView.listViewStateChangedEvent.add(this, this._onListViewStateChanged);
     this._sp = spfi().using(SPFx(this.context));
+
+    // Initialize request service
     this.context.serviceScope.whenFinished(() => {
       this._requestService = this.context.serviceScope.consume(RequestService.serviceKey);
     });
 
-    this.panelPlaceHolder = document.body.appendChild(document.createElement('div'));
+    // Create the placeholder for panel if not exists
+    this.panelPlaceHolder = document.body.appendChild(document.createElement("div"));
+
+    this.context.listView.listViewStateChangedEvent.add(this, this._onListViewStateChanged);
+    
+    this._updateCommandVisibility();
     return Promise.resolve();
   }
 
-  private _dismissPanel() {
-    this._renderPanelComponent({ showPanel: false });
+  private _updateCommandVisibility() {
+    const openWFPanel: Command = this.tryGetCommand('COMMAND_1');
+    openWFPanel.visible = this.context.listView.selectedRows.length === 1 && this._isDocumentSet(this.context.listView.selectedRows[0]);
+    this.raiseOnChange();
   }
 
-  private async _showPanel(itemId: number) {
-    if (!this.context.pageContext || !this.context.listView) {
-      return;
+  private _isDocumentSet(selectedItem: RowAccessor): boolean {
+    return selectedItem.getValueByName('ContentTypeId').startsWith('0x0120D520');
+  }
+
+  private async _getDetails(projectReference: string): Promise<{ draftItems: IItem[], applicableItems: IItem[], previousVersionsItems: IItem[] }> {
+    const [draftItems, applicableItems, previousVersionsItems] = await Promise.all([
+      this._getItems('Draft', projectReference),
+      this._getItems('Applicable Documents', projectReference),
+      this._getItems('Previous Versions', projectReference)
+    ]);
+
+    return { draftItems, applicableItems, previousVersionsItems };
+  }
+
+  private async _getItems(listTitle: string, projectReference: string): Promise<IItem[]> {
+    try {
+      return await this._sp.web.lists.getByTitle(listTitle).items
+        .select('Title', 'Modified', 'Author/Title', 'ProjectReference', 'ProjectRevision', 'FileRef')
+        .expand('Author')
+        .filter(`ProjectReference eq '${projectReference}'`)
+        ();
+    } catch (error) {
+      Log.error(LOG_SOURCE, `Error fetching items from ${listTitle}: ${error.message}`, error);
+      return [];
     }
+  }
 
-    const workflowUrl = this.properties.workflowUrl || 'https://default-workflow-url';
+  private _showPanel(itemId: number): void {
+    if (!this.panelPlaceHolder) return;
 
-    const selectedItem = this.context.listView.selectedRows[0];
-    const projectReference = selectedItem.getValueByName('ProjectReference');
-
-    let combinedItems: { title: string, modified: string, createdBy: string, projectRevision: string, link: string }[] = [];
-
-    if (projectReference) {
-      const details = await this.getDetails(projectReference);
-      combinedItems = [
-        ...details.draftItems,
-        ...details.applicableItems,
-        ...details.previousVersionsItems
-      ].map(item => ({
-        title: (item as any).Title,
-        modified: new Date((item as any).Modified).toLocaleDateString('en-GB'),
-        createdBy: (item as any).Author ? (item as any).Author.Title : 'Unknown',
-        projectRevision: (item as any).ProjectRevision,
-        link: (item as any).FileRef
-      }));
-    }
-
-    this._renderPanelComponent({
+    const workflowUrl = this.properties.workflowUrl || 'https://prod-150.westeurope.logic.azure.com/...';
+    
+    this._renderPanel({
       showPanel: true,
-      setShowPanel: this._dismissPanel.bind(this),
       documentId: itemId,
       requestService: this._requestService,
       cultureName: this.context.pageContext.cultureInfo.currentUICultureName.toLowerCase(),
       currentUserLogin: this.context.pageContext.user.loginName,
-      workflowUrl: workflowUrl,
-      items: combinedItems // Pass items to panel
+      workflowUrl,
+      itemData: this.itemData // Ensure we pass the right data
     });
   }
 
-  private _renderPanelComponent(props: any) {
+  private _renderPanel(props: IWorkflowsPanelProps): void {
     if (!props.showPanel) {
       ReactDom.unmountComponentAtNode(this.panelPlaceHolder!);
       return;
     }
 
-    const element: React.ReactElement<IWorkflowsPanelProps> = React.createElement(WorkflowsPanel, assign({
+    const element = React.createElement(WorkflowsPanel, assign({
       showPanel: false,
       setShowPanel: null,
       documentId: null,
       requestService: this._requestService,
       cultureName: this.context.pageContext.cultureInfo.currentUICultureName.toLowerCase(),
-      currentUserLogin: this.context.pageContext.user.loginName
+      currentUserLogin: this.context.pageContext.user.loginName,
+      isthreeSixtyDegree: true,
+      itemData: this.itemData
     }, props));
 
     ReactDom.render(element, this.panelPlaceHolder!);
@@ -110,51 +121,68 @@ export default class DmsContexualMenuCommandSetCommandSet extends BaseListViewCo
 
   public async onExecute(event: IListViewCommandSetExecuteEventParameters): Promise<void> {
     switch (event.itemId) {
-      case 'OPEN_WFPANEL':
-        const listGuid = this.context.listView.list?.guid?.toString() || '';
-        this._requestService.configure(
-          listGuid,
-          this._sp,
-          this.context
-        );
+      case 'COMMAND_1':
         const selectedItem = event.selectedRows[0];
         const listItemId = selectedItem.getValueByName('ID') as number;
-        await this._showPanel(listItemId);
+
+        this._requestService.configure(this.context.listView.list?.guid?.toString() || '', this._sp, this.context);
+        
+        await this._showRevisionDetails();
+        this._showPanel(listItemId);
         break;
+
       default:
-        throw new Error('Unknown command');
+        Log.error(LOG_SOURCE, `Unknown command: ${event.itemId}`);
+        break;
     }
   }
 
-  private isDocumentSet(selectedItem: RowAccessor) {
-    return selectedItem.getValueByName('ContentTypeId').startsWith('0x0120D520');
-  }
+  private async _showRevisionDetails(): Promise<void> {
+    const selectedRows = this.context.listView.selectedRows;
+    if (selectedRows.length === 0) return;
 
-  private _onListViewStateChanged = (args: ListViewStateChangedEventArgs): void => {
-    const openWFPanel: Command = this.tryGetCommand('OPEN_WFPANEL');
-    if (openWFPanel) {
-      openWFPanel.visible = this.context.listView.selectedRows?.length === 1 && this.isDocumentSet(this.context.listView.selectedRows[0]);
+    const projectReference = selectedRows[0].getValueByName('ProjectReference');
+    if (!projectReference) {
+      Log.error(LOG_SOURCE, 'No Project Reference found for the selected item.');
+      return;
     }
-    this.raiseOnChange();
-  }
 
-  private async getDetails(projectReference: string): Promise<{ draftItems: IItem[], applicableItems: IItem[], previousVersionsItems: IItem[] }> {
-    const draftItems = await this.getItems('Draft', projectReference);
-    const applicableItems = await this.getItems('Applicable Documents', projectReference);
-    const previousVersionsItems = await this.getItems('Previous Versions', projectReference);
-    return { draftItems, applicableItems, previousVersionsItems };
-  }
-
-  private async getItems(listTitle: string, projectReference: string): Promise<IItem[]> {
     try {
-      const items: IItem[] = await this._sp.web.lists.getByTitle(listTitle).items
-        .select('Title', 'Modified', 'Author/Title', 'ProjectReference', 'ProjectRevision', 'FileRef')
-        .expand('Author')
-        .filter(`ProjectReference eq '${projectReference}'`)();
-      return items;
+      const details = await this._getDetails(projectReference);
+      this.itemData = [...details.draftItems, ...details.applicableItems, ...details.previousVersionsItems]
+        .map(item => ({
+          title: item.Title,
+          modified: new Date(item.Modified).toLocaleDateString('en-GB'),
+          createdBy: item.Author ? item.Author.Title : 'Unknown',
+          projectRevision: item.ProjectRevision,
+          link: item.FileRef
+        }));
+
+      this._renderTable(this.itemData);
     } catch (error) {
-      console.error(`Error fetching items from ${listTitle}:`, error);
-      return [];
+      Log.error(LOG_SOURCE, `Error showing revision details: ${error.message}`, error);
     }
   }
+
+  private _renderTable(items: { title: string, modified: string, createdBy: string, projectRevision: string, link: string }[]): void {
+    if (this.container) {
+      ReactDom.unmountComponentAtNode(this.container);
+      document.body.removeChild(this.container);
+      this.container = null;
+    }
+
+    this.container = document.createElement('div');
+    document.body.appendChild(this.container);
+
+    this._renderPanel({
+      showPanel: true,
+      documentId: null,
+      itemData: this.itemData
+    });
+  }
+
+  private _onListViewStateChanged = (): void => {
+    Log.info(LOG_SOURCE, 'List view state changed');
+    this._updateCommandVisibility();
+  };
 }
