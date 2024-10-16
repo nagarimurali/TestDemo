@@ -29,6 +29,9 @@ export default class DmlCustomUiChangesApplicationCustomizer
 
       // Subscribe to page navigation events
       this.context.application.navigatedEvent.add(this, this.onNavigated);
+
+      // Add event listener for button clicks to trigger customizations
+      this.addButtonClickEventListener();
       
       return Promise.resolve();
     }
@@ -77,7 +80,9 @@ export default class DmlCustomUiChangesApplicationCustomizer
     }
 
     private toggleButtonVisibility(): void {
+      // Add custom logic for hiding/showing buttons based on conditions
       const currentUrl = window.location.href;
+
       const isChildFolder = (): boolean => {
         return currentUrl.includes('viewid');
       };
@@ -92,35 +97,29 @@ export default class DmlCustomUiChangesApplicationCustomizer
         }
       };
 
-      const toggleButtonsVisibility = () => {
-        if (isChildFolder()) {
-          toggleElementVisibility('button[data-automationid="newCommand"]', "New Button", true);
-          toggleElementVisibility('button[aria-label="Upload"]', "Upload Button", true);
-          toggleElementVisibility('button[data-automationid="customactionNavigation"]', "Create DMS DocumentSet", false);
-        } else {
-          toggleElementVisibility('button[data-automationid="newCommand"]', "New Button", false);
-          toggleElementVisibility('button[aria-label="Upload"]', "Upload Button", false);
+      if (isChildFolder()) {
+        toggleElementVisibility('button[data-automationid="newCommand"]', "New Button", true);
+        toggleElementVisibility('button[aria-label="Upload"]', "Upload Button", true);
+      } else {
+        toggleElementVisibility('button[data-automationid="newCommand"]', "New Button", false);
+        toggleElementVisibility('button[aria-label="Upload"]', "Upload Button", false);
+      }
+    }
+
+    private addButtonClickEventListener(): void {
+      const buttonSelector = 'button'; // Adjust selector for the specific buttons you want to track
+
+      const handleButtonClick = async (event: Event) => {
+        const target = event.target as HTMLButtonElement;
+        if (target) {
+          console.log(`Button clicked: ${target.textContent}`);
+          // Reapply customizations when a button is clicked
+          await this.applyCustomizations();
         }
       };
 
-      toggleButtonsVisibility();
-
-      const hideSyncButton = () => {
-        const syncButton: any = document.querySelector('button[data-automationid="syncCommand"]');
-        if (syncButton) {
-          syncButton.style.display = "none";
-        }
-      };
-
-      hideSyncButton();
-
-      const observer = new MutationObserver(() => {
-        hideSyncButton();
-        toggleButtonsVisibility();
+      document.querySelectorAll(buttonSelector).forEach(button => {
+        button.addEventListener('click', handleButtonClick);
       });
-
-      const config = { childList: true, subtree: true };
-      const targetNode = document.body || document.documentElement;
-      observer.observe(targetNode, config);
     }
 }
