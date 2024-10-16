@@ -75,7 +75,8 @@ export default class DmlCustomUiChangesApplicationCustomizer
         customStyle.href = this.cssUrl;
         customStyle.rel = "stylesheet";
         customStyle.type = "text/css";
-        head.insertAdjacentElement("beforeEnd", customStyle);
+        // Corrected insert position: "beforeend" (all lowercase)
+        head.insertAdjacentElement("beforeend", customStyle);
         console.log("Custom CSS injected.");
       }
     }
