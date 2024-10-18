@@ -73,3 +73,76 @@ class YourComponent extends React.Component {
     );
   }
 }
+=================================================
+  await BaselineService.updateListItem(this.props.context.list.title, createObject, this.props.itemID).then(async (res) => {
+  
+  const newLItemId = this.props.itemID.toString();
+  await BaselineService.batchDelete(CONSTANTS.ListNames.BaselineRefernceList, this.state.baselineIDs);
+  await BaselineService.batchDelete(CONSTANTS.ListNames.TechnicalReferenceList, this.state.technicalIds);
+
+  const logs = await Promise.all(this.state.linkedSearchItems.map(async (data) => {
+    if (data.ContentType === CONSTANTS.ContentTypeNames.Baseline) {
+      const baslineObject = {
+        [CONSTANTS.BaselineRefernceListFieldNames.BaselineParentID]: newLItemId,
+        [CONSTANTS.BaselineRefernceListFieldNames.SiteURL]: data.SiteUrl,
+        [CONSTANTS.BaselineRefernceListFieldNames.BaselineChildID]: data.ChildBaselineId,
+        Title: data.Title
+      };
+      await BaselineService.createListItem(CONSTANTS.ListNames.BaselineRefernceList, baslineObject);
+    }
+    if (data.ContentType === CONSTANTS.ContentTypeNames.Technical) {
+      const technicalObject = {
+        [CONSTANTS.TechnicalRefernceListFieldNames.BaselineParentID]: newLItemId,
+        [CONSTANTS.TechnicalRefernceListFieldNames.SiteURL]: data.SiteUrl,
+        [CONSTANTS.TechnicalRefernceListFieldNames.DocumentID]: data.DocumentId,
+        Title: data.Title
+      };
+      await BaselineService.createListItem(CONSTANTS.ListNames.TechnicalReferenceList, technicalObject);
+    }
+  }));
+
+  console.log(logs);
+  this.setState({
+    title: "",
+    baselineStatus: "",
+    baselineVersion: "",
+    cRID: '',
+    code: '',
+    label: '',
+    baselineComment: '',
+    errorMessage: "",
+    errorControls: []
+  });
+
+  // Show success message
+  toast.success('Updated new Baseline information', {
+    position: "top-center",
+    autoClose: 2000,
+    hideProgressBar: false,
+    closeOnClick: true,
+    pauseOnHover: false,
+    draggable: true,
+    progress: undefined,
+    theme: "colored",
+  });
+
+  // Redirect to the default SharePoint edit form
+  const editFormUrl = `${this.props.context.pageContext.web.absoluteUrl}/Lists/${this.props.context.list.title}/EditForm.aspx?ID=${newLItemId}`;
+  window.location.href = editFormUrl;
+
+}).catch((err) => {
+  console.log(err);
+  this.setState({ isSaving: false });
+
+  toast.error('Failed to update the Baseline!', {
+    position: "top-center",
+    autoClose: 2000,
+    hideProgressBar: false,
+    closeOnClick: true,
+    pauseOnHover: false,
+    draggable: true,
+    progress: undefined,
+    theme: "colored",
+  });
+});
+
