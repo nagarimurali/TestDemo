@@ -46,6 +46,8 @@ interface ITransmittalDetailTabState {
   expandedDocs: { [key: string]: boolean };
   checkStatuses: { [key: string]: "Approved" | "Rejected" | "" };
   comments: { [docId: string]: string };
+  transmittalStatus: "Approved" | "Rejected" | "Pending";
+  validated: boolean;
 }
 
 const statusOptions: IDropdownOption[] = [
@@ -65,6 +67,8 @@ class TransmittalDetailTab extends React.Component<
       expandedDocs: {},
       checkStatuses: {},
       comments: {},
+      transmittalStatus: "Pending",
+      validated: false,
     };
   }
 
@@ -79,12 +83,31 @@ class TransmittalDetailTab extends React.Component<
 
   handleStatusChange = (docId: string, option?: IDropdownOption): void => {
     if (!option) return;
-    this.setState((prevState) => ({
-      checkStatuses: {
-        ...prevState.checkStatuses,
-        [docId]: option.key as "Approved" | "Rejected",
-      },
-    }));
+    this.setState(
+      (prevState) => ({
+        checkStatuses: {
+          ...prevState.checkStatuses,
+          [docId]: option.key as "Approved" | "Rejected",
+        },
+      }),
+      this.updateTransmittalStatus
+    );
+  };
+
+  updateTransmittalStatus = () => {
+    const { checkStatuses } = this.state;
+    const values = Object.values(checkStatuses);
+
+    if (values.length === 0 || values.some((v) => v === "")) {
+      this.setState({ transmittalStatus: "Pending" });
+      return;
+    }
+
+    if (values.every((v) => v === "Approved")) {
+      this.setState({ transmittalStatus: "Approved" });
+    } else if (values.some((v) => v === "Rejected")) {
+      this.setState({ transmittalStatus: "Rejected" });
+    }
   };
 
   handleView = (url: string) => {
@@ -95,13 +118,18 @@ class TransmittalDetailTab extends React.Component<
 
   handleDownload = (url: string, filename: string) => {
     if (!url) return;
-
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  handleValidate = () => {
+    if (window.confirm("Are you sure you want to validate this transmittal?")) {
+      this.setState({ validated: true });
+    }
   };
 
   render() {
@@ -119,30 +147,63 @@ class TransmittalDetailTab extends React.Component<
           </DefaultButton>
         </div>
 
+        {/* Coversheet / Transmittal-level */}
         <Stack
-          className={styles.fileContainer}
           horizontal
           verticalAlign="center"
           tokens={{ childrenGap: 12 }}
+          style={{ marginBottom: "10px", paddingBottom: "10px" }}
         >
-          <Icon iconName="ZipFolder" style={{ fontSize: 20 }} />
-          <span className={styles.fileName}>{transmittal.name}</span>
-          <DefaultButton
-            onRenderText={() => (
-              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                Download package
-                <Icon iconName="Download" />
-              </span>
-            )}
-          />
+          <Stack.Item grow={2}>
+            <Icon {...getFileTypeIconProps({ extension: "xlsx", size: 24 })} />
+            <span style={{ fontWeight: 600, marginLeft: "3px" }}>
+              {transmittal.id}.xlsx
+            </span>
+          </Stack.Item>
+          <Stack.Item>
+            <span
+              className={`${styles.statusIcons} ${
+                this.state.transmittalStatus === "Approved"
+                  ? styles.iconApproved
+                  : ""
+              }`}
+            >
+              <FontIcon iconName="CheckMark" />
+            </span>
+            <span
+              className={`${styles.statusIcons} ${
+                this.state.transmittalStatus === "Rejected"
+                  ? styles.iconRejected
+                  : ""
+              }`}
+            >
+              <FontIcon iconName="Cancel" />
+            </span>
+          </Stack.Item>
+          <Stack.Item grow={1}>
+            <Dropdown
+              options={statusOptions}
+              placeholder="Status"
+              className={styles.ddlStatus}
+              selectedKey={this.state.transmittalStatus}
+              disabled={true}
+            />
+          </Stack.Item>
+          <Stack.Item grow={3}>
+            <TextField
+              className={styles.txtComments}
+              placeholder="Comment(s)"
+              disabled={this.state.validated}
+            />
+          </Stack.Item>
         </Stack>
 
+        {/* Documents list */}
         <div className={styles.docContainer}>
           {transmittal.documents[0].docChildItems?.map((doc: any) => {
             const checkStatuse = this.state.checkStatuses[doc.id] || "";
 
             if (doc.type === "file") {
-              // Render file directly
               return (
                 <Stack
                   key={doc.id}
@@ -204,12 +265,14 @@ class TransmittalDetailTab extends React.Component<
                       onChange={(_, option) =>
                         this.handleStatusChange(doc.id, option)
                       }
+                      disabled={this.state.validated}
                     />
                   </Stack.Item>
                   <Stack.Item grow={3}>
                     <TextField
                       className={styles.txtComments}
                       placeholder="Comment(s)"
+                      disabled={this.state.validated}
                     />
                   </Stack.Item>
                 </Stack>
@@ -217,12 +280,8 @@ class TransmittalDetailTab extends React.Component<
             }
 
             if (doc.type === "folder") {
-              // Render folder with children
               return (
-                <div
-                  key={doc.id}
-                  style={{ paddingBottom: 10, marginBottom: 10 }}
-                >
+                <div key={doc.id} style={{ paddingBottom: 10, marginBottom: 10 }}>
                   <Stack
                     horizontal
                     verticalAlign="center"
@@ -272,17 +331,18 @@ class TransmittalDetailTab extends React.Component<
                         onChange={(_, option) =>
                           this.handleStatusChange(doc.id, option)
                         }
+                        disabled={this.state.validated}
                       />
                     </Stack.Item>
                     <Stack.Item grow={3}>
                       <TextField
                         className={styles.txtComments}
                         placeholder="Comment(s)"
+                        disabled={this.state.validated}
                       />
                     </Stack.Item>
                   </Stack>
 
-                  {/* Child documents */}
                   {this.state.expandedDocs[doc.id] && (
                     <div className={styles.childContainer}>
                       <Stack
@@ -334,7 +394,6 @@ class TransmittalDetailTab extends React.Component<
                 </div>
               );
             }
-
             return null;
           })}
         </div>
@@ -343,6 +402,8 @@ class TransmittalDetailTab extends React.Component<
           <PrimaryButton
             className={styles.btnOk}
             style={{ marginRight: "5px", minWidth: "0px" }}
+            onClick={this.handleValidate}
+            disabled={this.state.validated}
           >
             OK
           </PrimaryButton>
