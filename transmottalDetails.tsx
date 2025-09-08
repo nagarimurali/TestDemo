@@ -1,25 +1,30 @@
 import * as React from "react";
 import {
   TextField,
-  Dropdown,
   IDropdownOption,
   IIconProps,
   Stack,
   FontIcon,
+  Icon,
   DefaultButton,
   PrimaryButton,
 } from "@fluentui/react";
 import styles from "./TransmittalDetailTab.module.scss";
+import {
+  getFileTypeIconProps,
+  initializeFileTypeIcons,
+} from "@fluentui/react-file-type-icons";
+
+initializeFileTypeIcons();
 
 export interface ITransmittalDocument {
-  docChildItems?: ITransmittalDocument[];
-  docId?: string;
+  docChildItems: any;
+  docId: string;
   name: string;
   type: "folder" | "file";
   url?: string;
   filetype?: string;
   children?: ITransmittalDocument[];
-  id?: string;
 }
 
 export interface ITransmittal {
@@ -34,19 +39,16 @@ export interface ITransmittal {
 interface ITransmittalDetailTabProps {
   transmittal: ITransmittal;
   onBack: () => void;
+  statusOptions: string[];
 }
 
 interface ITransmittalDetailTabState {
   expandedDocs: { [key: string]: boolean };
   checkStatuses: { [key: string]: "Approved" | "Rejected" | "" };
   comments: { [docId: string]: string };
-  isFinalized: boolean;
+  transmittalStatus: "Approved" | "Rejected" | "Pending";
+  validated: boolean;
 }
-
-const statusOptions: IDropdownOption[] = [
-  { key: "Approved", text: "Approved" },
-  { key: "Rejected", text: "Rejected" },
-];
 
 const backIcon: IIconProps = { iconName: "ChevronLeft" };
 
@@ -60,7 +62,8 @@ class TransmittalDetailTab extends React.Component<
       expandedDocs: {},
       checkStatuses: {},
       comments: {},
-      isFinalized: false,
+      transmittalStatus: "Pending",
+      validated: false,
     };
   }
 
@@ -75,16 +78,37 @@ class TransmittalDetailTab extends React.Component<
 
   handleStatusChange = (docId: string, option?: IDropdownOption): void => {
     if (!option) return;
-    this.setState((prevState) => ({
-      checkStatuses: {
-        ...prevState.checkStatuses,
-        [docId]: option.key as "Approved" | "Rejected",
-      },
-    }));
+    this.setState(
+      (prevState) => ({
+        checkStatuses: {
+          ...prevState.checkStatuses,
+          [docId]: option.key as "Approved" | "Rejected",
+        },
+      }),
+      this.updateTransmittalStatus
+    );
+  };
+
+  updateTransmittalStatus = () => {
+    const { checkStatuses } = this.state;
+    const values = Object.values(checkStatuses);
+
+    if (values.length === 0 || values.some((v) => v === "")) {
+      this.setState({ transmittalStatus: "Pending" });
+      return;
+    }
+
+    if (values.every((v) => v === "Approved")) {
+      this.setState({ transmittalStatus: "Approved" });
+    } else if (values.some((v) => v === "Rejected")) {
+      this.setState({ transmittalStatus: "Rejected" });
+    }
   };
 
   handleView = (url: string) => {
-    if (url) window.open(url, "_blank", "noopener,noreferrer");
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
   };
 
   handleDownload = (url: string, filename: string) => {
@@ -97,97 +121,17 @@ class TransmittalDetailTab extends React.Component<
     document.body.removeChild(link);
   };
 
-  handleCommentChange = (docId: string, value?: string) => {
-    this.setState((prevState) => ({
-      comments: { ...prevState.comments, [docId]: value || "" },
-    }));
-  };
-
-  getCoversheetStatus = (): "Approved" | "Rejected" | "" => {
-    const { checkStatuses } = this.state;
-    const { documents } = this.props.transmittal;
-
-    const childDocs = documents[0]?.docChildItems?.slice(1); // skip coversheet
-    if (!childDocs || childDocs.length === 0) return "";
-
-    const statuses = childDocs.map((doc: any) => checkStatuses[doc.id] || "");
-    if (statuses.includes("Rejected")) return "Rejected";
-    if (statuses.length > 0 && statuses.every((s) => s === "Approved"))
-      return "Approved";
-    return "";
-  };
-
-  handleFinalize = () => {
-    if (window.confirm("Are you sure you want to finalize approval?")) {
-      this.setState({ isFinalized: true });
+  handleValidate = () => {
+    if (window.confirm("Are you sure you want to validate this transmittal?")) {
+      this.setState({ validated: true });
     }
-  };
-
-  renderFileRow = (doc: any) => {
-    const { checkStatuses, comments, isFinalized } = this.state;
-    const checkStatuse = checkStatuses[doc.id] || "";
-
-    return (
-      <Stack
-        key={doc.id}
-        horizontal
-        verticalAlign="center"
-        tokens={{ childrenGap: 12 }}
-        style={{ marginBottom: "10px", paddingBottom: "10px" }}
-      >
-        <Stack.Item grow={2}>
-          <FontIcon iconName="Page" />
-          <span style={{ fontWeight: 600, marginLeft: "6px" }}>{doc.name}</span>
-          <span className={styles.xlsxIcons}>
-            <FontIcon
-              iconName="View"
-              title="View"
-              style={{ cursor: "pointer", marginRight: "6px" }}
-              onClick={() => this.handleView(doc.url!)}
-            />
-            <FontIcon
-              iconName="Download"
-              title="Download"
-              style={{ cursor: "pointer" }}
-              onClick={() => this.handleDownload(doc.url!, doc.name || "file")}
-            />
-          </span>
-        </Stack.Item>
-
-        <Stack.Item grow={1}>
-          <Dropdown
-            options={statusOptions}
-            placeholder="Status"
-            className={styles.ddlStatus}
-            selectedKey={checkStatuse || undefined}
-            onChange={(_, option) => this.handleStatusChange(doc.id, option)}
-            disabled={isFinalized}
-          />
-        </Stack.Item>
-
-        <Stack.Item grow={3}>
-          <TextField
-            className={styles.txtComments}
-            placeholder="Comment(s)"
-            value={comments[doc.id] || ""}
-            onChange={(_, val) => this.handleCommentChange(doc.id, val)}
-            disabled={isFinalized}
-          />
-        </Stack.Item>
-      </Stack>
-    );
   };
 
   render() {
     const { transmittal, onBack } = this.props;
-    const { expandedDocs, isFinalized } = this.state;
-
-    const coversheet = transmittal.documents[0]?.docChildItems?.[0]; // first file
-    const otherDocs = transmittal.documents[0]?.docChildItems?.slice(1) || [];
 
     return (
       <div className={styles.container}>
-        {/* Header */}
         <div className="flex justify-between items-center">
           <DefaultButton
             style={{ minWidth: "0px", padding: "0px 4px" }}
@@ -198,111 +142,189 @@ class TransmittalDetailTab extends React.Component<
           </DefaultButton>
         </div>
 
-        {/* Zip container */}
         <Stack
           className={styles.fileContainer}
           horizontal
           verticalAlign="center"
           tokens={{ childrenGap: 12 }}
         >
-          <FontIcon iconName="ZipFolder" style={{ fontSize: 20 }} />
+          <Icon iconName="ZipFolder" style={{ fontSize: 20 }} />
           <span className={styles.fileName}>{transmittal.name}</span>
           <DefaultButton
             onRenderText={() => (
               <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 Download package
-                <FontIcon iconName="Download" />
+                <Icon iconName="Download" />
               </span>
             )}
           />
         </Stack>
 
-        {/* Documents */}
+        {/* Documents list */}
         <div className={styles.docContainer}>
-          {/* Coversheet */}
-          {coversheet && (
-            <Stack
-              horizontal
-              verticalAlign="center"
-              tokens={{ childrenGap: 12 }}
-              style={{ marginBottom: "10px", paddingBottom: "10px" }}
-            >
-              <Stack.Item grow={2}>
-                <FontIcon iconName="Page" />
-                <span style={{ fontWeight: 600, marginLeft: "6px" }}>
-                  {coversheet.name} (Coversheet)
-                </span>
-                <span className={styles.xlsxIcons}>
-                  <FontIcon
-                    iconName="View"
-                    title="View"
-                    style={{ cursor: "pointer", marginRight: "6px" }}
-                    onClick={() => this.handleView(coversheet.url!)}
-                  />
-                  <FontIcon
-                    iconName="Download"
-                    title="Download"
-                    style={{ cursor: "pointer" }}
-                    onClick={() =>
-                      this.handleDownload(
-                        coversheet.url!,
-                        coversheet.name || "coversheet"
-                      )
-                    }
-                  />
-                </span>
-              </Stack.Item>
-              <Stack.Item grow={1}>
-                <Dropdown
-                  options={statusOptions}
-                  selectedKey={this.getCoversheetStatus()}
-                  disabled
-                />
-              </Stack.Item>
-            </Stack>
-          )}
+          {transmittal.documents[0].docChildItems?.map((doc: any, index: number) => {
+            const checkStatuse = this.state.checkStatuses[doc.id] || "";
+            const isFirstFile = index === 0 && doc.type === "file"; // disable only first item
 
-          {/* Other documents */}
-          {otherDocs.map((doc: any) => {
-            if (doc.type === "file") return this.renderFileRow(doc);
+            if (doc.type === "file") {
+              return (
+                <Stack
+                  key={doc.id}
+                  horizontal
+                  verticalAlign="center"
+                  tokens={{ childrenGap: 12 }}
+                  style={{ marginBottom: "10px", paddingBottom: "10px" }}
+                >
+                  <Stack.Item
+                    grow={3}
+                    style={{ display: "flex", width: "86px", alignItems: "center" }}
+                  >
+                    <Icon
+                      {...getFileTypeIconProps({
+                        extension: doc.name.split(".").pop(),
+                        size: 24,
+                        imageFileType: "png",
+                      })}
+                    />
+                    <span style={{ fontWeight: 600, marginLeft: "3px" }}>
+                      {doc.name}
+                    </span>
+                    <span className={styles.xlsxIcons}>
+                      <Icon
+                        iconName="View"
+                        title="View"
+                        style={{ cursor: "pointer", marginRight: "4px" }}
+                        onClick={() => this.handleView(doc.url)}
+                      />
+                      <Icon
+                        iconName="Download"
+                        title="Download"
+                        style={{ cursor: "pointer" }}
+                        onClick={() => this.handleDownload(doc.url, doc.name || "download")}
+                      />
+                    </span>
+                  </Stack.Item>
+
+                  {/* Approve / Reject buttons */}
+                  <Stack.Item>
+                    <DefaultButton
+                      style={{ marginRight: "5px", minWidth: "0px" }}
+                      className={`${styles.statusIcons} ${checkStatuse === "Approved" ? styles.iconApproved : ""}`}
+                      onClick={() =>
+                        this.handleStatusChange(doc.id, { key: "Approved", text: "Approved" })
+                      }
+                      disabled={isFirstFile || this.state.validated}
+                    >
+                      <FontIcon iconName="CheckMark" />
+                    </DefaultButton>
+                    <DefaultButton
+                      style={{ marginRight: "5px", minWidth: "0px" }}
+                      className={`${styles.statusIcons} ${checkStatuse === "Rejected" ? styles.iconRejected : ""}`}
+                      onClick={() =>
+                        this.handleStatusChange(doc.id, { key: "Rejected", text: "Rejected" })
+                      }
+                      disabled={isFirstFile || this.state.validated}
+                    >
+                      <FontIcon iconName="Cancel" />
+                    </DefaultButton>
+                  </Stack.Item>
+
+                  <Stack.Item grow={3}>
+                    <TextField
+                      className={styles.txtComments}
+                      placeholder="Comment(s)"
+                      disabled={this.state.validated}
+                    />
+                  </Stack.Item>
+                </Stack>
+              );
+            }
 
             if (doc.type === "folder") {
               return (
-                <div
-                  key={doc.id}
-                  style={{ paddingBottom: 10, marginBottom: 10 }}
-                >
-                  <Stack
-                    horizontal
-                    verticalAlign="center"
-                    tokens={{ childrenGap: 12 }}
-                  >
-                    <Stack.Item grow={2}>
-                      <FontIcon iconName="FabricFolder" />
-                      <span style={{ fontWeight: 600, marginLeft: "6px" }}>
+                <div key={doc.id} style={{ paddingBottom: 10, marginBottom: 10 }}>
+                  <Stack horizontal verticalAlign="center" tokens={{ childrenGap: 12 }}>
+                    <Stack.Item grow={3}>
+                      <Icon iconName="FabricFolder" />
+                      <span style={{ fontWeight: 600, marginLeft: "3px" }}>
                         {doc.name}
                       </span>
-                      <FontIcon
+                      <Icon
                         iconName={
-                          expandedDocs[doc.id] ? "ChevronUp" : "ChevronDown"
+                          this.state.expandedDocs[doc.id] ? "ChevronUp" : "ChevronDown"
                         }
                         onClick={() => this.toggleExpand(doc.id)}
                         style={{ minWidth: 0, padding: 4, cursor: "pointer" }}
                       />
                     </Stack.Item>
+
+                    {/* Approve / Reject for folders */}
+                    <Stack.Item>
+                      <DefaultButton
+                        style={{ marginRight: "5px", minWidth: "0px" }}
+                        className={`${styles.statusIcons} ${checkStatuse === "Approved" ? styles.iconApproved : ""}`}
+                        onClick={() =>
+                          this.handleStatusChange(doc.id, { key: "Approved", text: "Approved" })
+                        }
+                        disabled={this.state.validated}
+                      >
+                        <FontIcon iconName="CheckMark" />
+                      </DefaultButton>
+                      <DefaultButton
+                        style={{ marginRight: "5px", minWidth: "0px" }}
+                        className={`${styles.statusIcons} ${checkStatuse === "Rejected" ? styles.iconRejected : ""}`}
+                        onClick={() =>
+                          this.handleStatusChange(doc.id, { key: "Rejected", text: "Rejected" })
+                        }
+                        disabled={this.state.validated}
+                      >
+                        <FontIcon iconName="Cancel" />
+                      </DefaultButton>
+                    </Stack.Item>
+
+                    <Stack.Item grow={3}>
+                      <TextField
+                        className={styles.txtComments}
+                        placeholder="Comment(s)"
+                        disabled={this.state.validated}
+                      />
+                    </Stack.Item>
                   </Stack>
 
-                  {expandedDocs[doc.id] && (
+                  {this.state.expandedDocs[doc.id] && (
                     <div className={styles.childContainer}>
-                      <Stack
-                        horizontal
-                        wrap
-                        tokens={{ childrenGap: 10 }}
-                        styles={{ root: { padding: 8 } }}
-                      >
-                        {doc.children?.map((file: any) =>
-                          this.renderFileRow(file)
-                        )}
+                      <Stack horizontal wrap tokens={{ childrenGap: 10 }} styles={{ root: { padding: 8 } }}>
+                        {doc.children?.map((file: any) => (
+                          <Stack.Item
+                            key={file.id}
+                            grow
+                            className={styles.childFileItems}
+                            style={{ maxWidth: "250px" }}
+                          >
+                            <Icon
+                              {...getFileTypeIconProps({
+                                extension: file.name.split(".").pop(),
+                                size: 24,
+                                imageFileType: "png",
+                              })}
+                            />
+                            <span className={styles.childFileNames}>{file.name}</span>
+                            <div className={styles.childIconGrop}>
+                              <Icon
+                                iconName="View"
+                                title="View"
+                                style={{ cursor: "pointer" }}
+                                onClick={() => this.handleView(file.url)}
+                              />
+                              <Icon
+                                iconName="Download"
+                                title="Download"
+                                style={{ cursor: "pointer" }}
+                                onClick={() => this.handleDownload(file.url, file.name || "download")}
+                              />
+                            </div>
+                          </Stack.Item>
+                        ))}
                       </Stack>
                     </div>
                   )}
@@ -314,13 +336,12 @@ class TransmittalDetailTab extends React.Component<
           })}
         </div>
 
-        {/* Footer */}
         <div className="flex gap-2" style={{ textAlign: "center" }}>
           <PrimaryButton
             className={styles.btnOk}
-            style={{ marginRight: "5px" }}
-            disabled={isFinalized}
-            onClick={this.handleFinalize}
+            style={{ marginRight: "5px", minWidth: "0px" }}
+            onClick={this.handleValidate}
+            disabled={this.state.validated}
           >
             OK
           </PrimaryButton>
