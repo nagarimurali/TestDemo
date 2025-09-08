@@ -1,7 +1,6 @@
 import * as React from "react";
 import {
   TextField,
-  IDropdownOption,
   IIconProps,
   Stack,
   FontIcon,
@@ -76,13 +75,12 @@ class TransmittalDetailTab extends React.Component<
     }));
   };
 
-  handleStatusChange = (docId: string, option?: IDropdownOption): void => {
-    if (!option) return;
+  handleButtonStatusChange = (docId: string, status: "Approved" | "Rejected") => {
     this.setState(
       (prevState) => ({
         checkStatuses: {
           ...prevState.checkStatuses,
-          [docId]: option.key as "Approved" | "Rejected",
+          [docId]: status,
         },
       }),
       this.updateTransmittalStatus
@@ -209,20 +207,20 @@ class TransmittalDetailTab extends React.Component<
                   <Stack.Item>
                     <DefaultButton
                       style={{ marginRight: "5px", minWidth: "0px" }}
-                      className={`${styles.statusIcons} ${checkStatuse === "Approved" ? styles.iconApproved : ""}`}
-                      onClick={() =>
-                        this.handleStatusChange(doc.id, { key: "Approved", text: "Approved" })
-                      }
+                      className={`${styles.statusIcons} ${
+                        checkStatuse === "Approved" ? styles.iconApproved : ""
+                      }`}
+                      onClick={() => this.handleButtonStatusChange(doc.id, "Approved")}
                       disabled={isFirstFile || this.state.validated}
                     >
                       <FontIcon iconName="CheckMark" />
                     </DefaultButton>
                     <DefaultButton
                       style={{ marginRight: "5px", minWidth: "0px" }}
-                      className={`${styles.statusIcons} ${checkStatuse === "Rejected" ? styles.iconRejected : ""}`}
-                      onClick={() =>
-                        this.handleStatusChange(doc.id, { key: "Rejected", text: "Rejected" })
-                      }
+                      className={`${styles.statusIcons} ${
+                        checkStatuse === "Rejected" ? styles.iconRejected : ""
+                      }`}
+                      onClick={() => this.handleButtonStatusChange(doc.id, "Rejected")}
                       disabled={isFirstFile || this.state.validated}
                     >
                       <FontIcon iconName="Cancel" />
@@ -262,20 +260,20 @@ class TransmittalDetailTab extends React.Component<
                     <Stack.Item>
                       <DefaultButton
                         style={{ marginRight: "5px", minWidth: "0px" }}
-                        className={`${styles.statusIcons} ${checkStatuse === "Approved" ? styles.iconApproved : ""}`}
-                        onClick={() =>
-                          this.handleStatusChange(doc.id, { key: "Approved", text: "Approved" })
-                        }
+                        className={`${styles.statusIcons} ${
+                          checkStatuse === "Approved" ? styles.iconApproved : ""
+                        }`}
+                        onClick={() => this.handleButtonStatusChange(doc.id, "Approved")}
                         disabled={this.state.validated}
                       >
                         <FontIcon iconName="CheckMark" />
                       </DefaultButton>
                       <DefaultButton
                         style={{ marginRight: "5px", minWidth: "0px" }}
-                        className={`${styles.statusIcons} ${checkStatuse === "Rejected" ? styles.iconRejected : ""}`}
-                        onClick={() =>
-                          this.handleStatusChange(doc.id, { key: "Rejected", text: "Rejected" })
-                        }
+                        className={`${styles.statusIcons} ${
+                          checkStatuse === "Rejected" ? styles.iconRejected : ""
+                        }`}
+                        onClick={() => this.handleButtonStatusChange(doc.id, "Rejected")}
                         disabled={this.state.validated}
                       >
                         <FontIcon iconName="Cancel" />
