@@ -1,0 +1,29 @@
+You can apply a Retention Policy to folders in Outlook so emails in that folder are automatically deleted or archived after a certain time. The steps depend on whether your organization (Microsoft 365 / Exchange) already created retention tags.
+Method 1: Apply Retention Policy to a Folder (Outlook Desktop)
+Open Microsoft Outlook.
+In the left navigation pane, locate the folder (for example: Inbox subfolder).
+Right-click the folder.
+Click Properties.
+Go to the Policy tab.
+In Folder Policy, select the retention policy (example: Delete after 1 year, Archive after 2 years).
+Click Apply → OK.
+📌 This policy will apply to all emails inside that folder automatically.
+Method 2: Apply Retention Policy to Individual Emails
+Select the email(s).
+Go to Home tab.
+Click Assign Policy.
+Choose the retention tag.
+Method 3: Outlook Web (OWA)
+Open Outlook on the Web.
+Right-click the folder.
+Select Assign policy.
+Choose the retention policy.
+✅ Example:
+If you select Delete after 1 year, all emails in that folder will be automatically deleted after 1 year.
+💡 Important:
+If you don’t see retention policies, your Microsoft 365 admin must create them in
+Microsoft Purview → Data lifecycle management → Retention policies.
+✅ If you want, I can also show:
+How to create retention policy in Microsoft 365 (Admin side)
+How to apply it automatically to all Outlook folders
+Difference between Retention Policy vs Archive Policy (many people confuse these).
